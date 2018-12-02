@@ -1,4 +1,4 @@
-using Images, TestImages
+using Images, TestImages, ImageView, FileIO
 
 function HorizontalRF(I, D, sigma)
 	
@@ -29,12 +29,14 @@ end
 function image_transpose(I)
 	(num_channels, h, w) = size(I);
     
-    T = zeros(w, h, num_channels);
+    T = zeros(num_channels, w, h);
     
     for c = 1:num_channels
-        T(c,:,:) = I(c,:,:)';
+        T[c,:,:] = I[c,:,:]';
 	end
+	
 	return T
+	
 end
 
 
@@ -72,20 +74,23 @@ dVdy = dVdy';
 
 sigma_H = sigma_s;
 
-F = deepcopy(img);
+F = deepcopy(channelview(img))
 N = num_iterations
 
-for i = 0:(num_iterations-1)
+for i = 0:num_iterations-1
 
 	  #Compute the sigma value for this iteration
 	  sigma_H_i = sigma_H * sqrt(3) * 2^(N - (i + 1)) / sqrt(4^N - 1);
 
-	  F = HorizontalRF(F, dHdx, sigma_H_i);
-	  F = image_transpose(F);
-	  F = HorizontalRF(F, dVdy, sigma_H_i);
-	  F = image_transpose(F);
+	  global F = HorizontalRF(F, dHdx, sigma_H_i);
+	  global F = image_transpose(F);
+	  global F = HorizontalRF(F, dVdy, sigma_H_i);
+	  global F = image_transpose(F);
 
 end
 
-printline(F) #new image
+F = colorview(RGB, F)
+
+imshow(F)
+
 
