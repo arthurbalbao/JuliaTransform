@@ -10,11 +10,13 @@ function TransformedDomainBoxFilter_Horizontal(I, xform_domain_position, box_rad
    u_pos = xform_domain_position .+ box_radius
    # Find the indices of the pixels associated with the lower and upper limits
    # of the box kernel.
-   l_idx = zeros(size(xform_domain_position))
-   u_idx = zeros(size(xform_domain_position))
+  global l_idx = zeros(size(xform_domain_position))
+  global u_idx = zeros(size(xform_domain_position))
 
    for row = 1:h
-       xform_domain_pos_row = xform_domain_position[row,:];
+      xform_domain_pos_row = xform_domain_position[row,:];
+      append!(xform_domain_pos_row,[Inf])
+
 
        l_pos_row = l_pos[row,:];
        u_pos_row = u_pos[row,:];
@@ -25,11 +27,13 @@ function TransformedDomainBoxFilter_Horizontal(I, xform_domain_position, box_rad
        local_l_idx[1] = findfirst(x -> x>l_pos_row[1], xform_domain_pos_row)
        local_u_idx[1] = findfirst(x -> x>u_pos_row[1], xform_domain_pos_row)
 
+
        for col = 2:w
            nextLowIndex = findfirst(x -> x>l_pos_row[col], xform_domain_pos_row[(Int.(local_l_idx[col-1]):end)])
            nextHighIndex = findfirst(x -> x>u_pos_row[col], xform_domain_pos_row[(Int.(local_u_idx[col-1]):end)])
            local_l_idx[col] = local_l_idx[col-1] + nextLowIndex - 1
            local_u_idx[col] = local_u_idx[col-1] + nextHighIndex - 1
+
        end
 
        l_idx[row,:] = local_l_idx
@@ -43,9 +47,9 @@ function TransformedDomainBoxFilter_Horizontal(I, xform_domain_position, box_rad
    F              = zeros(3,h,w)
 
    for c = 1:channels
-      a = Int.(c .+ (row_indices .*3 + (u_idx) .*3 .*h))
-      b = Int.(c .+ (row_indices .*3 + (l_idx) .*3 .*h))
-      F[c,:,:] = (SAT[a] - SAT[b]) ./ (u_idx - l_idx)
+      a = Int.(c .+ (-1 .+ row_indices) .*3 + (-1 .+ u_idx) .*3 .*h)
+      b = Int.(c .+ (-1 .+ row_indices) .*3 + (-1 .+ l_idx) .*3 .*h)
+      F[c,:,:] =  (SAT[a] - SAT[b])  ./  (u_idx - l_idx)
    end
  return F
 
@@ -59,7 +63,7 @@ num_iterations = 3
 img = load("statue.png")
 img = RGB{Float64}.(img)
  F = channelview(img)
-
+imshow(img)
 (h,w) = size(img)
 
 #extracts partial derivates from image
@@ -100,7 +104,9 @@ end
 for i = 0:num_iterations-1
   # Compute the sigma value for this iteration (Equation 14 of our paper).
   sigma_H_i = sigma_H * sqrt(3) * 2^(N - (i + 1)) / sqrt(4^N - 1)
-global F, ct_H,ct_V
+global F
+global ct_H
+global ct_V
   #Compute the radius of the box filter with the desired variance.
   box_radius = sqrt(3) * sigma_H_i
  F = TransformedDomainBoxFilter_Horizontal(F, ct_H, box_radius)
@@ -110,7 +116,7 @@ global F, ct_H,ct_V
  F = imagetranspose(F)
 
 end
-F = colorview(F)
+F = colorview(RGB,F)
 imshow(F)
 
 end
