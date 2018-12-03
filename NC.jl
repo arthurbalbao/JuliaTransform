@@ -49,7 +49,8 @@ function TransformedDomainBoxFilter_Horizontal(I, xform_domain_position, box_rad
    for c = 1:channels
       a = Int.(c .+ (-1 .+ row_indices) .*3 + (-1 .+ u_idx) .*3 .*h)
       b = Int.(c .+ (-1 .+ row_indices) .*3 + (-1 .+ l_idx) .*3 .*h)
-      F[c,:,:] =  (SAT[a] - SAT[b])  ./  (u_idx - l_idx)
+      F[c,:,:] =  (SAT[a] - SAT[b])  ./  ((u_idx - l_idx) .* .90)
+
    end
  return F
 
@@ -116,7 +117,7 @@ global ct_V
  F = imagetranspose(F)
 
 end
-F = colorview(RGB,F)
+F = colorview(Gray,F)
 imshow(F)
 
 end
